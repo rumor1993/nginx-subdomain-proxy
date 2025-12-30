@@ -1,0 +1,16 @@
+# 환경 변수 (민감 정보)
+.env
+
+# Let's Encrypt 인증서 및 로그
+certbot/conf/
+certbot/logs/
+
+# Nginx 자동 생성 설정 파일 (.template에서 생성됨)
+nginx/conf.d/*.conf
+
+# .template 파일은 포함
+!nginx/conf.d/*.template
+
+# IDE 설정
+.idea/
+*.iml

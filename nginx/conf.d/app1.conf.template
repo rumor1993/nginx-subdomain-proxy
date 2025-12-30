@@ -1,0 +1,29 @@
+# app1 서브도메인
+server {
+    listen 443 ssl http2;
+    server_name app1.${MY_DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/${MY_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${MY_DOMAIN}/privkey.pem;
+
+    # SSL 설정
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    location / {
+        # host.docker.internal: 도커 컨테이너에서 호스트 머신에 접근하기 위한 특수 DNS
+        # 호스트에서 실행 중인 3001 포트의 애플리케이션으로 프록시
+        proxy_pass http://host.docker.internal:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

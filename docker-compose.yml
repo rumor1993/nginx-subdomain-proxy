@@ -1,0 +1,40 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+    environment:
+      - MY_DOMAIN=${MY_DOMAIN}
+    ## Linux(Ubuntu)에서 host.docker.internal 사용을 위한 설정
+    ## host-gateway는 호스트 머신의 IP를 자동으로 매핑
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ## 각 .template 파일에 대해 환경변수를 치환하여 .conf 파일 생성
+    ## $$MY_DOMAIN은 docker-compose의 환경변수를 사용
+    ## $${template%.template}.conf는 파일명에서 .template을 제거하고 .conf 추가
+    command: >
+      /bin/sh -c "
+      for template in /etc/nginx/conf.d/*.template; do
+        envsubst '$$MY_DOMAIN' < $$template > $${template%.template}.conf;
+      done &&
+      nginx -g 'daemon off;'
+      "
+  certbot:
+    image: certbot/dns-route53
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/logs:var/log/letsencrypt
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+    command:
+      ## agree-tos : Lets Encrypt 서비스 이용약관 동의
+      ## no-eff-email : 비영리 단체인 EFF 뉴스레터 수신하지 않는다
+      ## non-interactive : "Y/N" 팝업 뜨지 않게 처리
+      - certonly --dns-route53 -d ${MY_DOMAIN} -d "*.${MY_DOMAIN}" --email ${MY_EMAIL} --agree-tos --no-eff-email --non-interactive
